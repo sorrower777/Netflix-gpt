@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { toggleTheme } from "../utils/themeSlice.js";
 import { addUser, removeUser } from "../utils/userSlice.js";
 import { useEffect } from "react";
+import { LOGO, UserAvatar } from "../utils/constant.js";
 
 
 
@@ -38,7 +39,7 @@ const Header = () => {
                 uid: uid, 
                 email: email, 
                 displayName: displayName, 
-                photoURL: photoURL || "https://avatars.githubusercontent.com/u/123868221?v=4"
+                photoURL: photoURL || UserAvatar
               })
             );
             navigate("/browse");
@@ -48,7 +49,6 @@ const Header = () => {
             navigate("/");
         }
     });
-    
     // Clean up subscription
     return () => unsubscribe();
 }, [dispatch,navigate]);
@@ -57,7 +57,7 @@ const Header = () => {
       <div className="px-4 py-4 md:px-12 flex items-center justify-between">
         <div className="flex items-center">
           <img 
-            src="https://cdn.cdnlogo.com/logos/n/82/netflix.png" 
+            src={LOGO} 
             alt="Netflix Logo"
             className="h-8 md:h-12" 
           />
@@ -75,11 +75,11 @@ const Header = () => {
           {user && !isAuthPage && (
             <>
               <img 
-                src={user.photoURL || "https://avatars.githubusercontent.com/u/123868221?v=4"} 
+                src={UserAvatar} 
                 alt="User Profile" 
                 className="w-8 h-8 rounded-full"
                 onError={(e) => {
-                  e.target.src = "https://avatars.githubusercontent.com/u/123868221?v=4";
+                  e.target.src = UserAvatar;
                 }}
               /> 
               <button 

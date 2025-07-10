@@ -1,4 +1,5 @@
-import React from "react"; //importing React from react
+
+import React from "react"; //importing React from react;
 import Header from "./Header.js";
 import { useState , useRef} from "react";
 import { checkValidateData } from "../utils/validate.js";
@@ -8,6 +9,7 @@ import { updateProfile } from "firebase/auth";
 // import { useNavigate } from "react-router-dom";
 import { addUser } from "../utils/userSlice.js";
 import { useDispatch } from "react-redux";
+import { UserAvatar } from "../utils/constant.js";
 
 const Login = () => {
   const[isSignInForm , setSignInForm] = useState(true);
@@ -40,7 +42,7 @@ const Login = () => {
           const user = userCredential.user;
           await updateProfile(user, {
             displayName: name, 
-            photoURL: "https://avatars.githubusercontent.com/u/123868221?v=4"
+            photoURL: UserAvatar
           });
           // After profile is updated
           const {uid, email: userEmail, displayName, photoURL} = auth.currentUser;

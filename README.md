@@ -21,6 +21,12 @@
 - Update Profile
 - BugFix: Sign Up user displayName and profile picture update
 - BugFix: If the user is not logged in Redirect / browse to Login Page and vice-versa
+- Unsubscribe from Auth State Change
+- Add hardcoded value to the constants file
+- Add Theme Toggle Button
+- Add hardcoded values to the constant file
+- Register TMDB API & create an app & get access token
+- Get Data from TMDB now playing movies list API
 
 ....
 
