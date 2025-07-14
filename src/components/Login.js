@@ -1,180 +1,169 @@
-
-import React from "react"; //importing React from react;
-import Header from "./Header.js";
-import { useState , useRef} from "react";
-import { checkValidateData } from "../utils/validate.js";
-import { createUserWithEmailAndPassword , signInWithEmailAndPassword  } from "firebase/auth";
-import { auth } from "../utils/firebase.js";
-import { updateProfile } from "firebase/auth";
-// import { useNavigate } from "react-router-dom";
-import { addUser } from "../utils/userSlice.js";
+import { useState, useRef } from "react";
+import Header from "./Header";
+import { checkValidData } from "../utils/validate";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "../utils/firebase";
 import { useDispatch } from "react-redux";
-import { UserAvatar } from "../utils/constant.js";
+import { useNavigate } from "react-router-dom";
+import { addUser } from "../utils/userSlice";
+import { BG_URL, USER_AVATAR } from "../utils/constants";
 
 const Login = () => {
-  const[isSignInForm , setSignInForm] = useState(true);
-  const[errorMessage, setErrorMessage] = useState(null);
-  // const navigate = useNavigate();
-  const[name , setName] = useState(""); 
+  const [isSignInForm, setIsSignInForm] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
-  const dispatch = useDispatch();
 
-  const handleButtonClick = async () => {
-    try {
-      // Validate the form data    
-      const message = checkValidateData(email.current.value, password.current.value);
-      setErrorMessage(message);
-      if(message) return;
-      
-      // Show loading state
-      setErrorMessage("Processing request...");
-      
-      if(!isSignInForm){
-        // Sign Up logic
-        try {
-          const userCredential = await createUserWithEmailAndPassword(
-            auth, 
-            email.current.value, 
-            password.current.value
-          );
-          // Signed up 
+  const handleButtonClick = () => {
+    console.log("Login button clicked");
+    const message = checkValidData(email.current.value, password.current.value);
+    setErrorMessage(message);
+    if (message) {
+      console.log("Validation failed:", message);
+      return;
+    }
+
+    // If Firebase auth is not available, simulate login
+    if (!auth) {
+      console.log("Using demo auth mode");
+      const userData = {
+        uid: "demo-user",
+        email: email.current.value,
+        displayName: isSignInForm ? "Demo User" : name.current?.value || "Demo User",
+        photoURL: USER_AVATAR,
+      };
+      console.log("Dispatching user data:", userData);
+      dispatch(addUser(userData));
+      // Save user data to localStorage for persistence
+      localStorage.setItem('netflix-gpt-user', JSON.stringify(userData));
+      console.log("Saved user to localStorage:", localStorage.getItem('netflix-gpt-user'));
+      // Navigate to browse page after successful login
+      console.log("Navigating to /browse");
+      navigate("/browse");
+      return;
+    }
+
+    if (!isSignInForm) {
+      // Sign Up Logic
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
           const user = userCredential.user;
-          await updateProfile(user, {
-            displayName: name, 
-            photoURL: UserAvatar
-          });
-          // After profile is updated
-          const {uid, email: userEmail, displayName, photoURL} = auth.currentUser;
-          dispatch(
-            addUser({
-              uid: uid, 
-              email: userEmail, 
-              displayName: displayName, 
-              photoURL: photoURL
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL: USER_AVATAR,
+          })
+            .then(() => {
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+              const userData = {
+                uid: uid,
+                email: email,
+                displayName: displayName,
+                photoURL: photoURL,
+              };
+              dispatch(addUser(userData));
+              // Save to localStorage for persistence
+              localStorage.setItem('netflix-gpt-user', JSON.stringify(userData));
             })
-          );
-          console.log("Successfully signed up:", user);
-          setErrorMessage(null);
-          // navigate("/browse"); // Navigation happens here
-        } catch (error) {
-          console.error("Firebase signup error:", error);
-          if (error.code === "auth/email-already-in-use") {
-            setErrorMessage("Email already in use. Try signing in instead.");
-          } else if (error.code === "auth/invalid-email") {
-            setErrorMessage("Invalid email format.");
-          } else if (error.code === "auth/weak-password") {
-            setErrorMessage("Password is too weak. Use at least 6 characters.");
-          } else {
-            setErrorMessage(error.code + " - " + error.message);
-          }
-        }
-      } else {
-        // Sign In logic
-
-        try {
-          const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email.current.value,
-            password.current.value
-          );
+            .catch((error) => {
+              setErrorMessage(error.message);
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
+    } else {
+      // Sign In Logic
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
           // Signed in
           const user = userCredential.user;
-          console.log("Successfully signed in:", user);
-          setErrorMessage(null);
-          // Make sure navigation happens here
-          // navigate("/browse");
-        } catch (error) {
-          console.error("Firebase signin error:", error);
-          if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-            setErrorMessage("Invalid email or password.");
-          } else if (error.code === "auth/invalid-email") {
-            setErrorMessage("Invalid email format.");
-          } else {
-            setErrorMessage(error.code + " - " + error.message);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("General error:", error);
-      setErrorMessage("An unexpected error occurred. Please try again.");
+          const userData = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          };
+          dispatch(addUser(userData));
+          // Save to localStorage for persistence
+          localStorage.setItem('netflix-gpt-user', JSON.stringify(userData));
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
     }
-  }
+  };
 
   const toggleSignInForm = () => {
-    setSignInForm(!isSignInForm);
-
+    setIsSignInForm(!isSignInForm);
   };
-  const handleChange = (e) =>{
-    setName(e.target.value);
-  }
-    return (
-      <div className="relative z-10 flex items-center justify-center min-h-screen px-4 py-12">
-        {/* Background with overlay - FIXED VERSION */}
-        <div className="fixed inset-0 -z-10 h-screen w-full">
-          <img
-            src="https://assets.nflxext.com/ffe/siteui/vlv3/69bec183-9cc8-49d4-8fc2-08228d3c91b4/web/IN-en-20250414-TRIFECTA-perspective_c8273fb1-8860-4ff5-bd1c-c2c4b44d5f2a_large.jpg"
-            alt="Netflix background"
-            className="absolute h-full w-full object-cover"
-            onError={(e) => {
-              e.target.style.display = 'none'; // Hide if fails to load
-            }}
-          />
-          <div className="absolute inset-0 bg-black/60"></div>
-        </div>
-          <Header />
-        <div className="relative z-10 flex items-center justify-center min-h-screen px-4 py-12">
-        <form onSubmit={(e)=>e.preventDefault()}
-         className="w-full max-w-md p-12 bg-white dark:bg-black bg-opacity-80 dark:bg-opacity-80 rounded-md"
-        >
-          <h1 className="text-3xl font-bold text-black dark:text-white mb-8">
-            {isSignInForm ? "Sign In" : "Sign Up"}
-          </h1>
-          
-          <div className="space-y-4">
-          {!isSignInForm && (
-            <input
-              type="text"
-              placeholder="Full Name"
-              className="w-full p-3 bg-gray-100 dark:bg-gray-700 rounded text-black dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              required
-              value={name}
-              onChange={handleChange}
-            />
-          )}
-            <input
-            ref={email}
-              type="email"
-              placeholder="Email or phone number"
-              className="w-full p-3 bg-gray-100 dark:bg-gray-700 rounded text-black dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              required
-            />
-            <input
-            ref={password}
-              type="password"
-              placeholder="Password"
-              className="w-full p-3 bg-gray-100 dark:bg-gray-700 rounded text-black dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              required
-            />
-          </div>
-          {/* <p className="text-red-500 font-bold text-lg py-2">{name}</p> */}
-          <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
-          <button
-            type="submit"
-            className="w-full py-3 mt-8 text-white bg-red-600 rounded-md hover:bg-red-700 font-medium"
-            onClick={handleButtonClick}
-          >
-            {isSignInForm ? "Sign In" : "Sign Up"}
-          </button>
-          <p className="text-white py-4 cursor-pointer" onClick={toggleSignInForm}>
-            {isSignInForm? 
-            "New to Netflix? Sign Up Now." :
-             "Already have an account? Sign In Now."}
-             </p>
-          </form>
-        </div>
+  return (
+    <div className="min-h-screen">
+      <Header />
+      <div className="fixed inset-0 -z-10">
+        <img className="w-full h-full object-cover" src={BG_URL} alt="background" />
       </div>
-    );
-  };
-  
-  export default Login;
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        className="w-full md:w-3/12 absolute p-12 bg-black my-36 mx-auto right-0 left-0 text-white rounded-lg bg-opacity-80 z-10"
+      >
+        <h1 className="font-bold text-3xl py-4">
+          {isSignInForm ? "Sign In" : "Sign Up"}
+        </h1>
+
+        {!isSignInForm && (
+          <input
+            ref={name}
+            type="text"
+            placeholder="Full Name"
+            className="p-4 my-4 w-full bg-gray-700"
+          />
+        )}
+        <input
+          ref={email}
+          type="text"
+          placeholder="Email Address"
+          className="p-4 my-4 w-full bg-gray-700"
+        />
+        <input
+          ref={password}
+          type="password"
+          placeholder="Password"
+          className="p-4 my-4 w-full bg-gray-700"
+        />
+        <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
+        <button
+          className="p-4 my-6 bg-red-700 w-full rounded-lg"
+          onClick={handleButtonClick}
+        >
+          {isSignInForm ? "Sign In" : "Sign Up"}
+        </button>
+        <p className="py-4 cursor-pointer" onClick={toggleSignInForm}>
+          {isSignInForm
+            ? "New to Netflix? Sign Up Now"
+            : "Already registered? Sign In Now."}
+        </p>
+      </form>
+    </div>
+  );
+};
+export default Login;

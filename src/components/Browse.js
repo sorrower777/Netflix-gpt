@@ -1,19 +1,29 @@
-import React from "react";
 import Header from "./Header";
-import useNowPlayingMovies from "../hooks/useNowPlayingMovies.js";
+import useNowPlayingMovies from "../hooks/useNowPlayingMovies";
+import MainContainer from "./MainContainer";
+import SecondaryContainer from "./SecondaryContainer";
+import usePopularMovies from "../hooks/usePopularMovies";
+import GptSearch from "./GptSearch";
+import { useSelector } from "react-redux";
 
 const Browse = () => {
-  // Fetch Data from TMDB API and update store
+  const showGptSearch = useSelector((store) => store.gpt.showGptSearch);
+
   useNowPlayingMovies();
+  usePopularMovies();
+
   return (
-    <div className="p-4 bg-white dark:bg-black min-h-screen" >
+    <div>
       <Header />
-      <div className="pt-20 text-black dark:text-white">
-        <h1 className="text-3xl font-bold">Browse Content</h1>
-        {/* Your browse content here */}
-      </div>
+      {showGptSearch ? (
+        <GptSearch />
+      ) : (
+        <>
+          <MainContainer />
+          <SecondaryContainer />
+        </>
+      )}
     </div>
   );
 };
-
 export default Browse;
